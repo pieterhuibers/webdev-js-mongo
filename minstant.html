@@ -90,9 +90,11 @@
 
 <!-- simple template that displays a message -->
 <template name="chat_message">
-	<img src="/{{getAvatar user}}" class="avatar_message_img">
-	{{getUsername user}} said: {{text}}
-	<br>
+	<div class="comment">
+		<img src="/{{getAvatar user}}" class="avatar_message_img">
+		{{getUsername user}} said: {{text}}
+		<br>
+	</div>
 </template>
 
 
