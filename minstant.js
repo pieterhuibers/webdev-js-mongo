@@ -1,6 +1,10 @@
 Chats = new Mongo.Collection("chats");
+Users = Meteor.users;
 
 if (Meteor.isClient) {
+	Meteor.subscribe("users");
+	Meteor.subscribe("chats");
+
   // set up the main template the the router will use to build pages
   Router.configure({
     layoutTemplate: 'ApplicationLayout'
@@ -25,16 +29,18 @@ if (Meteor.isClient) {
                 ]};
     var chat = Chats.findOne(filter);
     if (!chat){// no chat matching the filter - need to insert a new one
-      chatId = Chats.insert({user1Id:Meteor.userId(), user2Id:otherUserId});
+			Meteor.call("insertChat", Meteor.userId(), otherUserId, function(error,res) {
+				chatId = res;
+			});
     }
     else {// there is a chat going already - use that. 
       chatId = chat._id;
     }
-    if (chatId){// looking good, save the id to the session
-      Session.set("chatId",chatId);
-    }
-    this.render("navbar", {to:"header"});
-    this.render("chat_page", {to:"main"});  
+		if (chatId){// looking good, save the id to the session
+			Session.set("chatId",chatId);
+		}
+		this.render("navbar", {to:"header"});
+		this.render("chat_page", {to:"main"});  
   });
 
   ///
@@ -105,7 +111,7 @@ if (Meteor.isClient) {
       // put the messages array onto the chat object
       chat.messages = msgs;
       // update the chat object in the database.
-      Chats.update(chat._id, chat);
+      Meteor.call("updateChat",chat._id, chat);
     }
   }
  })
@@ -128,4 +134,28 @@ if (Meteor.isServer) {
       }
     } 
   });
+
+  Meteor.methods({
+	  updateChat:function(chatId, chat) {
+		  console.log(chatId + " updating chat " + chat);
+      Chats.update(chat._id, chat);
+	  },
+		
+		insertChat(user1Id, user2Id) {
+      chatId = Chats.insert({user1Id:user1Id, user2Id:user2Id});
+			return chatId;
+		}
+  });
+
+	Meteor.publish("users", function() {
+		return Users.find();
+	});
+
+	Meteor.publish("chats", function() {
+    var filter = {$or:[
+                {user1Id:this.userId}, 
+                {user2Id:this.userId}
+                ]};
+    return Chats.find(filter);
+	});
 }
